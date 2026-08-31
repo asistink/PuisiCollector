@@ -8,7 +8,6 @@
   <img src="https://img.shields.io/badge/Python-3.8+-3776AB?style=flat&logo=python&logoColor=white" alt="Python 3.8+">
   <img src="https://img.shields.io/badge/Database-SQLite3-003B57?style=flat&logo=sqlite&logoColor=white" alt="SQLite3">
   <img src="https://img.shields.io/badge/Dependencies-Zero%20External-success?style=flat" alt="Zero Dependencies">
-  <img src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat" alt="License MIT">
 </p>
 
 ---
@@ -152,55 +151,3 @@ Cakupan pengujian:
 - Proteksi otorisasi endpoint puisi tanpa sesi valid.
 - Penyajian file statis antarmuka `index.html`.
 
----
-
-## 🌐 Panduan Deployment (Linux / AWS EC2)
-
-Aplikasi siap di-deploy pada server Linux seperti AWS EC2 (`t2.micro`), DigitalOcean Droplet, atau VPS lainnya.
-
-### 1. Konfigurasi Firewall / Security Group
-Pastikan port berikut terbuka:
-- **Port 22 (SSH)**: Untuk administrasi server remote.
-- **Port 8080 (Custom TCP)**: Untuk akses web publik.
-
-### 2. Jalankan sebagai Systemd Service (Background Service)
-Agar server tetap berjalan stabil di latar belakang meskipun terminal ditutup:
-
-1. Buat file konfigurasi service:
-   ```bash
-   sudo nano /etc/systemd/system/puisi-collector.service
-   ```
-
-2. Isi dengan konfigurasi berikut (sesuaikan nama user dan path direktori):
-   ```ini
-   [Unit]
-   Description=Puisi Collector Web Service
-   After=network.target
-
-   [Service]
-   Type=simple
-   User=ubuntu
-   WorkingDirectory=/home/ubuntu/PuisiCollector
-   ExecStart=/usr/bin/python3 /home/ubuntu/PuisiCollector/app.py 8080
-   Restart=always
-   RestartSec=3
-
-   [Install]
-   WantedBy=multi-user.target
-   ```
-
-3. Aktifkan dan jalankan service:
-   ```bash
-   sudo systemctl daemon-reload
-   sudo systemctl enable puisi-collector
-   sudo systemctl start puisi-collector
-   sudo systemctl status puisi-collector
-   ```
-
-Aplikasi sekarang dapat diakses secara publik melalui `http://<IP_PUBLIK_SERVER>:8080/`.
-
----
-
-## 📄 Lisensi
-
-Proyek ini dilisensikan di bawah lisensi [MIT License](LICENSE).
