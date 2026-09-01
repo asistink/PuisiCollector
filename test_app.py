@@ -170,6 +170,29 @@ class StatefulMonolithTestCase(unittest.TestCase):
         self.assertIn("kategori", item)
         self.assertEqual(item["judul"], "Hujan Bulan Juni")
 
+    def test_08b_detail_puisi_authorized(self):
+        # Ambil detail puisi ID 1 dengan session aktif
+        res = self._request("GET", "detail_puisi&id=1", cookie=self.session_cookie)
+        self.assertEqual(res["status"], 200)
+        self.assertEqual(res["body"]["status"], "success")
+        data = res["body"]["data"]
+        self.assertEqual(data["judul"], "Hujan Bulan Juni")
+        self.assertIn("Tak ada yang lebih tabah", data["isi"])
+        self.assertEqual(data["penulis"], "Budi Santoso")
+        self.assertEqual(data["kategori"], "Romansa")
+        self.assertEqual(data["keyword"], "hujan, rindu")
+
+    def test_08c_detail_puisi_not_found(self):
+        # Puisi ID tidak ada
+        res = self._request("GET", "detail_puisi&id=9999", cookie=self.session_cookie)
+        self.assertEqual(res["status"], 404)
+        self.assertEqual(res["body"]["status"], "error")
+
+    def test_08d_detail_puisi_unauthorized(self):
+        # Request tanpa cookie
+        res = self._request("GET", "detail_puisi&id=1")
+        self.assertEqual(res["status"], 401)
+
     def test_09_stateful_dependency_memory_loss(self):
         # Simulate server memory restart by clearing in-memory SESSIONS
         app.SESSIONS.clear()

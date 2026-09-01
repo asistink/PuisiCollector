@@ -140,6 +140,9 @@ class StatefulMonolithHandler(http.server.BaseHTTPRequestHandler):
             if action == "daftar_puisi":
                 self.handle_daftar_puisi()
                 return
+            elif action in ("detail_puisi", "baca_puisi"):
+                self.handle_detail_puisi(query)
+                return
             elif action == "session_info":
                 # Helper endpoint untuk mengecek state sesi aktif saat ini
                 user = self._get_authenticated_user()
@@ -355,6 +358,52 @@ class StatefulMonolithHandler(http.server.BaseHTTPRequestHandler):
             })
         except Exception as e:
             self._send_json(500, {"status": "error", "message": f"Gagal mengambil data puisi: {str(e)}"})
+        finally:
+            conn.close()
+
+    def handle_detail_puisi(self, query: dict):
+        # Verifikasi autentikasi sesi stateful
+        user = self._get_authenticated_user()
+        if not user:
+            self._send_json(401, {"status": "error", "message": "Sesi tidak valid atau telah kedaluwarsa"})
+            return
+
+        puisi_id = query.get("id", [None])[0]
+        if not puisi_id:
+            self._send_json(400, {"status": "error", "message": "Parameter 'id' puisi wajib disertakan"})
+            return
+
+        conn = get_db()
+        cursor = conn.cursor()
+        try:
+            cursor.execute(
+                """
+                SELECT p.id, p.user_id, p.judul, p.tgl_submit, p.isi, p.kategori, p.keyword, u.nama AS penulis, u.username
+                FROM puisi p
+                JOIN users u ON p.user_id = u.id
+                WHERE p.id = ?
+                """,
+                (puisi_id,)
+            )
+            row = cursor.fetchone()
+            if not row:
+                self._send_json(404, {"status": "error", "message": "Puisi tidak ditemukan"})
+                return
+
+            puisi_data = {
+                "id": row["id"],
+                "user_id": row["user_id"],
+                "judul": row["judul"],
+                "tgl_submit": row["tgl_submit"],
+                "isi": row["isi"],
+                "kategori": row["kategori"],
+                "keyword": row["keyword"],
+                "penulis": row["penulis"],
+                "username": row["username"]
+            }
+            self._send_json(200, {"status": "success", "data": puisi_data})
+        except Exception as e:
+            self._send_json(500, {"status": "error", "message": f"Gagal membaca puisi: {str(e)}"})
         finally:
             conn.close()
 

@@ -287,6 +287,77 @@
       color: var(--accent-primary);
     }
 
+    /* Reader Modal */
+    .modal-backdrop {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(4px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 1000;
+    }
+
+    .modal-backdrop.active {
+      display: flex;
+    }
+
+    .modal-content {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      width: 100%;
+      max-width: 650px;
+      max-height: 85vh;
+      overflow-y: auto;
+      padding: 28px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 12px;
+    }
+
+    .modal-title {
+      font-size: 1.4rem;
+      font-weight: 800;
+      color: #ffffff;
+    }
+
+    .modal-meta {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 6px;
+    }
+
+    .modal-body {
+      font-family: Georgia, 'Times New Roman', serif;
+      font-size: 1.05rem;
+      line-height: 1.9;
+      font-style: italic;
+      color: #e2e8f0;
+      white-space: pre-wrap;
+      padding: 20px;
+      background: rgba(15, 23, 42, 0.5);
+      border-radius: 8px;
+      border-left: 4px solid var(--accent-primary);
+    }
+
     /* Notice Footer */
     footer {
       text-align: center;
@@ -413,16 +484,40 @@
                 <th>Tgl Terbit</th>
                 <th>Judul Puisi</th>
                 <th>Kategori</th>
+                <th style="text-align: center; width: 90px;">Aksi</th>
               </tr>
             </thead>
             <tbody id="puisiTableBody">
               <tr>
-                <td colspan="3" style="text-align: center; color: var(--text-secondary);">Memuat koleksi puisi...</td>
+                <td colspan="4" style="text-align: center; color: var(--text-secondary);">Memuat koleksi puisi...</td>
               </tr>
             </tbody>
           </table>
         </div>
       </section>
+    </div>
+
+    <!-- Reader Modal (Pop-up Baca Puisi) -->
+    <div class="modal-backdrop" id="readerModal" onclick="closeReaderModal(event)">
+      <div class="modal-content" onclick="event.stopPropagation()">
+        <div class="modal-header">
+          <div>
+            <h3 class="modal-title" id="modalJudul">-</h3>
+            <div class="modal-meta">
+              <span>✍️ Penulis: <strong id="modalPenulis" style="color: var(--text-primary);">-</strong></span>
+              <span>📅 <span id="modalTgl">-</span></span>
+              <span>🏷️ <span class="tag" id="modalKategori">-</span></span>
+            </div>
+            <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 6px;">
+              Kata Kunci: <span id="modalKeyword" style="color: var(--accent-primary);">-</span>
+            </div>
+          </div>
+          <button type="button" class="btn-secondary" onclick="closeReaderModal()" style="padding: 6px 12px; font-size: 0.85rem;">✕ Tutup</button>
+        </div>
+        <div class="modal-body" id="modalIsi">
+          Memuat bait puisi...
+        </div>
+      </div>
     </div>
 
     <footer>
@@ -593,7 +688,7 @@
 
         if (res.status === 200) {
           if (!data.data || data.data.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; color: var(--text-secondary);">Belum ada puisi yang diunggah.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--text-secondary);">Belum ada puisi yang diunggah.</td></tr>';
             return;
           }
           tbody.innerHTML = data.data.map(p => `
@@ -601,20 +696,54 @@
               <td>${p.tgl_submit}</td>
               <td><strong>${escapeHtml(p.judul)}</strong></td>
               <td><span class="tag">${escapeHtml(p.kategori)}</span></td>
+              <td style="text-align: center;">
+                <button type="button" class="btn-secondary" style="padding: 4px 10px; font-size: 0.8rem;" onclick="bacaPuisi(${p.id})">📖 Baca</button>
+              </td>
             </tr>
           `).join('');
         } else if (res.status === 401) {
-          tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; color: var(--accent-danger);">Sesi telah kedaluwarsa. Silakan login kembali.</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--accent-danger);">Sesi telah kedaluwarsa. Silakan login kembali.</td></tr>';
           checkSession();
         } else {
           showAlert('daftarAlert', 'error', data.message || 'Gagal memuat puisi');
         }
       } catch (err) {
-        tbody.innerHTML = `<tr><td colspan="3" style="text-align: center; color: var(--accent-danger);">Error: ${err.message}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--accent-danger);">Error: ${err.message}</td></tr>`;
       }
     }
 
-    // 6. Action: Logout (POST /app.py?action=logout)
+    // 6. Action: Detail / Baca Puisi (GET /app.py?action=detail_puisi&id=...)
+    async function bacaPuisi(id) {
+      try {
+        const res = await fetch(`${API_ENDPOINT}?action=detail_puisi&id=${id}`, {
+          method: 'GET',
+          credentials: 'include' // Mengirimkan session cookie
+        });
+        const result = await res.json();
+
+        if (res.status === 200) {
+          const p = result.data;
+          document.getElementById('modalJudul').textContent = p.judul;
+          document.getElementById('modalPenulis').textContent = `${p.penulis} (@${p.username})`;
+          document.getElementById('modalTgl').textContent = p.tgl_submit;
+          document.getElementById('modalKategori').textContent = p.kategori;
+          document.getElementById('modalKeyword').textContent = p.keyword;
+          document.getElementById('modalIsi').textContent = p.isi;
+          document.getElementById('readerModal').classList.add('active');
+        } else {
+          showAlert('daftarAlert', 'error', result.message || 'Gagal memuat detail puisi');
+          if (res.status === 401) checkSession();
+        }
+      } catch (err) {
+        showAlert('daftarAlert', 'error', 'Gagal membaca puisi: ' + err.message);
+      }
+    }
+
+    function closeReaderModal(e) {
+      document.getElementById('readerModal').classList.remove('active');
+    }
+
+    // 7. Action: Logout (POST /app.py?action=logout)
     async function handleLogout() {
       try {
         await fetch(`${API_ENDPOINT}?action=logout`, {
