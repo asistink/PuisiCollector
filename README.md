@@ -103,7 +103,8 @@ Semua operasi API dilayani melalui endpoint utama: `/app.py?action=<aksi>`
 | `register` | `POST` | Publik | `{"username", "password", "nama"}` | Mendaftarkan akun baru dan menghasilkan sequence ID. |
 | `login` | `POST` | Publik | `{"username", "password"}` | Verifikasi kredensial dan menerbitkan session cookie. |
 | `submit_puisi` | `POST` | Terproteksi | `{"judul", "isi", "tgl_submit", "kategori", "keyword"}` | Mengunggah karya puisi baru yang terhubung ke akun aktif. |
-| `daftar_puisi` | `GET` | Terproteksi | *(None)* | Mengambil seluruh daftar karya puisi yang tersedia. |
+| `daftar_puisi` | `GET` | Terproteksi | *(None)* | Mengambil ringkasan koleksi puisi (`id`, `tgl_submit`, `judul`, `kategori`). |
+| `detail_puisi` | `GET` | Terproteksi | *(Query: `&id=<id>`)* | Mengambil data lengkap sebuah puisi beserta bait isi dan nama penulis untuk dibaca. |
 | `session_info` | `GET` | Terproteksi | *(None)* | Memeriksa status dan profil sesi pengguna aktif. |
 | `logout` | `POST` | Terproteksi | *(None)* | Menghapus sesi aktif dari server dan mengosongkan cookie. |
 
